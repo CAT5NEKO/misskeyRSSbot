@@ -1,10 +1,11 @@
+//KoyebやVercel等、環境変数を直接読み込まないといけないサービス向けの修正版
+
 package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"sync"
@@ -123,14 +124,8 @@ func postToMisskey(config Config, item *gofeed.Item) error {
 
 func main() {
 	fmt.Println("処理を開始しますっ！")
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(".envファイルの読み込みに失敗しました。入力した内容を確認してください。:", err)
-	}
-
 	var config Config
-	err = envconfig.Process("", &config)
+	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal("環境変数の読み込みをしくじりました...:", err)
 	}
