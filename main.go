@@ -4,20 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/mmcdole/gofeed"
 )
 
 type Config struct {
-	MisskeyHost string `envconfig:"MISSKEY_HOST" required:"true"`
-	AuthToken   string `envconfig:"AUTH_TOKEN" required:"true"`
-	RSSURL      string `envconfig:"RSS_URL" required:"true"`
+	MisskeyHost string   `envconfig:"MISSKEY_HOST" required:"true"`
+	AuthToken   string   `envconfig:"AUTH_TOKEN" required:"true"`
+	RSSURL      []string `envconfig:"RSS_URL" required:"true"`
 }
 
 type MisskeyNote struct {
@@ -42,32 +42,33 @@ func (c *Cache) saveLatestItem(published time.Time) {
 }
 
 func processRSS(config Config, cache *Cache) error {
+	for _, rssURL := range config.RSSURL {
+		fp := gofeed.NewParser()
+		feed, err := fp.ParseURL(rssURL)
+		if err != nil {
+			log.Println("RSSのパースが上手くできませんでした。:", err)
+			return err
+		}
 
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL(config.RSSURL)
-	if err != nil {
-		log.Println("RSSのパースが上手くできませんでした。:", err)
-		return err
-	}
+		latestItem := cache.getLatestItem()
 
-	latestItem := cache.getLatestItem()
+		log.Println("Feed Title:", feed.Title)
+		log.Println("Feed Description:", feed.Description)
+		log.Println("Feed Link:", feed.Link)
 
-	log.Println("Feed Title:", feed.Title)
-	log.Println("Feed Description:", feed.Description)
-	log.Println("Feed Link:", feed.Link)
+		if len(feed.Items) > 0 && feed.Items[0].PublishedParsed != nil {
+			newestItem := *feed.Items[0].PublishedParsed
 
-	if len(feed.Items) > 0 && feed.Items[0].PublishedParsed != nil {
-		newestItem := *feed.Items[0].PublishedParsed
+			if newestItem.After(latestItem) {
+				err := postToMisskey(config, feed.Items[0])
+				if err != nil {
+					log.Println("Misskeyの投稿をしくじりました...:", err)
+					return err
+				} else {
+					log.Println("Misskeyに投稿しました。:", feed.Items[0].Title)
 
-		if newestItem.After(latestItem) {
-			err := postToMisskey(config, feed.Items[0])
-			if err != nil {
-				log.Println("Misskeyの投稿をしくじりました...:", err)
-				return err
-			} else {
-				log.Println("Misskeyに投稿しました。:", feed.Items[0].Title)
-
-				cache.saveLatestItem(newestItem)
+					cache.saveLatestItem(newestItem)
+				}
 			}
 		}
 	}
