@@ -16,3 +16,10 @@ If you want to use vercel or koyeb, please change code in `main.go`
 Currently,it loads `.env` as a file, but the services like Vercel or above are loads the environment directly, so please modify it accordingly.
 
 
+## Option
+
+If you want to use multi URL, please modify as this 
+
+```dotenv
+RSS_URL:"https://example.com/rss/news/cat0.xml,https://example.com/rss/news/cat1.xml,https://example.com/rss/news/cat2.xml"
+```
