@@ -30,10 +30,25 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
-2. repository.SummarizerRepositoryインターフェースを実装する(Summarize, IsEnabledの2メソッド)
+2. repository.SummarizerRepositoryインターフェースを実装する
+
+実装するメソッドシグネチャ:
+
+- `Summarize(ctx context.Context, url, title string) (string, error)`
+- `IsEnabled() bool`
 3. internal/infrastructure/llm/summarizer.goのNewSummarizerRepository内のswitch文にcaseを追加する
 4. interfaces/config/config.goに必要な設定を追加する
 5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
+
+`llm.Config`の対象フィールド:
+
+- `Provider string`
+- `APIKey string`
+- `Model string`
+- `Region string`
+- `MaxTokens int`
+- `SystemInstruction string`
+- `Timeout time.Duration`
 
 必須/任意の判定手順:
 
@@ -72,6 +87,8 @@ if err != nil {
 ```
 
 コンストラクタはエクスポートせず先頭小文字で定義する。Configから必要なフィールドを取得し、不足する場合はエラーを返す。タイムアウトはcontext.WithTimeoutで制御する。
+
+`IsEnabled()`は有効な要約器で`true`を返し、無効化用実装(noop)で`false`を返す。
 
 タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
 
