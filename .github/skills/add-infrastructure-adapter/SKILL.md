@@ -54,6 +54,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 `llm.Config`は`internal/infrastructure/llm/summarizer.go`に既存定義があるため、新規に重複定義しない。
 
+環境変数名は既存規約の`LLM_*`を使う。
+
 必須/任意の判定手順:
 
 1. プロバイダSDK/API仕様で必須入力を列挙する
@@ -67,7 +69,7 @@ main.goでは既存パターンに合わせて次の順で配線する。
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
-4. `noop`フォールバックも失敗した場合は`log.Fatal`または呼び出し元へエラー返却する
+4. `noop`フォールバックも失敗した場合は`log.Fatal`で終了する
 
 配線の最小例:
 
@@ -94,7 +96,19 @@ if err != nil {
 
 `context.WithTimeout`は`Summarize`メソッド内で適用する。
 
+最小例:
+
+```go
+func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	return "", nil
+}
+```
+
 `IsEnabled()`は有効な要約器で`true`を返し、無効化用実装(noop)で`false`を返す。
+
+`IsEnabled()`は`internal/application/rss_feed_service.go`から参照される。
 
 タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
 
