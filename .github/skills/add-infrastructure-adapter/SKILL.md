@@ -15,7 +15,7 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 - プロバイダ名(例: bedrock)
 - 必須設定項目(APIキー、モデル名、リージョンなど)
-- 失敗時の扱い(初期化失敗でエラー返却するか)
+- 失敗時の扱い(初期化失敗時とnoopフォールバック失敗時の両方)
 
 上記3点が未確定なら実装を開始しない。特に必須設定項目は「変数名」「必須/任意」「default値」を表で先に決める。
 
@@ -48,6 +48,7 @@ main.goでは既存パターンに合わせて次の順で配線する。
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
+4. `noop`フォールバックも失敗した場合は`log.Fatal`または呼び出し元へエラー返却する
 
 配線の最小例:
 
@@ -64,6 +65,9 @@ summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
 })
 if err != nil {
 	summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
+	if err != nil {
+		log.Fatal("Failed to create fallback noop summarizer:", err)
+	}
 }
 ```
 
