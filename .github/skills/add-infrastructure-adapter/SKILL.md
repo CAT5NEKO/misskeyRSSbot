@@ -19,6 +19,14 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 上記3点が未確定なら実装を開始しない。特に必須設定項目は「変数名」「必須/任意」「default値」を表で先に決める。
 
+実装開始ゲート:
+
+- `プロバイダ名`
+- `必須/任意/デフォルト表`
+- `失敗時の扱い`
+
+この3点がそろうまでコード変更しない。
+
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
@@ -26,6 +34,14 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 3. internal/infrastructure/llm/summarizer.goのNewSummarizerRepository内のswitch文にcaseを追加する
 4. interfaces/config/config.goに必要な設定を追加する
 5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
+
+必須/任意の判定手順:
+
+1. プロバイダSDK/API仕様で必須入力を列挙する
+2. 列挙した必須入力を`required`として`config.go`に追加する
+3. 任意入力のみdefault値を設定する
+4. `GetLLMConfig()`に全項目を追加する
+5. アダプタコンストラクタでrequired欠落を検証してエラー返却する
 
 main.goでは既存パターンに合わせて次の順で配線する。
 
@@ -66,6 +82,8 @@ if err != nil {
 - Summarizeの正常系で期待する要約が返る
 - 外部APIエラーをラップして返す
 - context timeout時に失敗する
+
+テスト時の外部API呼び出しは`httptest`または差し替え可能なクライアントインターフェースでモックし、実ネットワークに依存しない。
 
 ## 新しいキャッシュバックエンドの追加
 
