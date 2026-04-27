@@ -99,12 +99,22 @@ LLMTimeout  int    `envconfig:"LLM_TIMEOUT" default:"30"`
 
 required判定は`envconfig`の`required`タグではなく、プロバイダごとにコンストラクタ内で行う。
 
+required判定の最小例:
+
+```go
+if cfg.Model == "" {
+	return nil, fmt.Errorf("myprovider model is required")
+}
+```
+
 main.goでは既存パターンに合わせて次の順で配線する。
 
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
 4. `noop`フォールバックも失敗した場合は`log.Fatal`で終了する
+
+`llmCfg.Timeout`は`GetLLMConfig()`で秒から`time.Duration`へ変換済みの値をそのまま渡す。
 
 配線の最小例:
 
@@ -148,6 +158,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 `IsEnabled()`は`internal/application/rss_feed_service.go`から参照される。
 
 `noop`フォールバック失敗時の`log.Fatal`は防御的ガードであり、通常経路では発生しない想定。
+
+`main.go`では`NewSummarizerRepository`が返した`error != nil`をすべてフォールバック対象として扱う。
 
 `repository.SummarizerRepository`は既存インターフェースを使い、新規定義しない。
 
