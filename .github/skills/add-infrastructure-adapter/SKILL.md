@@ -11,11 +11,26 @@ description: 新しい外部サービス接続を追加する際に使用する�
 
 LLMプロバイダを追加する場合、ファクトリパターンに従う。
 
+事前に次を確定する。
+
+- プロバイダ名(例: bedrock)
+- 必須設定項目(APIキー、モデル名、リージョンなど)
+- 失敗時の扱い(初期化失敗でエラー返却するか)
+
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
 2. repository.SummarizerRepositoryインターフェースを実装する(Summarize, IsEnabledの2メソッド)
 3. internal/infrastructure/llm/summarizer.goのNewSummarizerRepository内のswitch文にcaseを追加する
+4. interfaces/config/config.goに必要な設定を追加する
+5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
 
 コンストラクタはエクスポートせず先頭小文字で定義する。Configから必要なフィールドを取得し、不足する場合はエラーを返す。タイムアウトはcontext.WithTimeoutで制御する。
+
+テストは{プロバイダ名}_summarizer_test.goを追加し、最低限次を検証する。
+
+- 必須設定不足時にエラーを返す
+- Summarizeの正常系で期待する要約が返る
+- 外部APIエラーをラップして返す
+- context timeout時に失敗する
 
 ## 新しいキャッシュバックエンドの追加
 
