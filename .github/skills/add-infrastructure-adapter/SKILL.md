@@ -29,6 +29,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
+このSkillの対象は「単一の有効プロバイダ選択」のみ。複数プロバイダ同時初期化や実行時切り替えは対象外。
+
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
 2. repository.SummarizerRepositoryインターフェースを実装する
 
@@ -49,6 +51,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 - `MaxTokens int`
 - `SystemInstruction string`
 - `Timeout time.Duration`
+
+`llm.Config`は`internal/infrastructure/llm/summarizer.go`に既存定義があるため、新規に重複定義しない。
 
 必須/任意の判定手順:
 
@@ -87,6 +91,8 @@ if err != nil {
 ```
 
 コンストラクタはエクスポートせず先頭小文字で定義する。Configから必要なフィールドを取得し、不足する場合はエラーを返す。タイムアウトはcontext.WithTimeoutで制御する。
+
+`context.WithTimeout`は`Summarize`メソッド内で適用する。
 
 `IsEnabled()`は有効な要約器で`true`を返し、無効化用実装(noop)で`false`を返す。
 
