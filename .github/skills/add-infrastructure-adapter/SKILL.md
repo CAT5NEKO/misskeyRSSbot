@@ -17,13 +17,23 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 - 必須設定項目(APIキー、モデル名、リージョンなど)
 - 失敗時の扱い(初期化失敗でエラー返却するか)
 
+このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
+
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
 2. repository.SummarizerRepositoryインターフェースを実装する(Summarize, IsEnabledの2メソッド)
 3. internal/infrastructure/llm/summarizer.goのNewSummarizerRepository内のswitch文にcaseを追加する
 4. interfaces/config/config.goに必要な設定を追加する
 5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
 
+main.goでは既存パターンに合わせて次の順で配線する。
+
+1. `llmCfg := cfg.GetLLMConfig()`
+2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
+3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
+
 コンストラクタはエクスポートせず先頭小文字で定義する。Configから必要なフィールドを取得し、不足する場合はエラーを返す。タイムアウトはcontext.WithTimeoutで制御する。
+
+タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
 
 テストは{プロバイダ名}_summarizer_test.goを追加し、最低限次を検証する。
 
