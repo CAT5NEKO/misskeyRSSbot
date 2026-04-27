@@ -17,6 +17,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 - 必須設定項目(APIキー、モデル名、リージョンなど)
 - 失敗時の扱い(初期化失敗でエラー返却するか)
 
+上記3点が未確定なら実装を開始しない。特に必須設定項目は「変数名」「必須/任意」「default値」を表で先に決める。
+
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
@@ -31,9 +33,32 @@ main.goでは既存パターンに合わせて次の順で配線する。
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
 
+配線の最小例:
+
+```go
+llmCfg := cfg.GetLLMConfig()
+summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
+	Provider:          llmCfg.Provider,
+	APIKey:            llmCfg.APIKey,
+	Model:             llmCfg.Model,
+	Region:            llmCfg.Region,
+	MaxTokens:         llmCfg.MaxTokens,
+	Timeout:           llmCfg.Timeout,
+	SystemInstruction: llmCfg.SystemInstruction,
+})
+if err != nil {
+	summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
+}
+```
+
 コンストラクタはエクスポートせず先頭小文字で定義する。Configから必要なフィールドを取得し、不足する場合はエラーを返す。タイムアウトはcontext.WithTimeoutで制御する。
 
 タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
+
+既存プロバイダの必須項目例:
+
+- gemini: `LLM_API_KEY`, `LLM_MODEL`
+- bedrock: `LLM_MODEL`, `LLM_REGION`
 
 テストは{プロバイダ名}_summarizer_test.goを追加し、最低限次を検証する。
 
