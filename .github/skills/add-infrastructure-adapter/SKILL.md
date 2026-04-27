@@ -107,7 +107,7 @@ if cfg.Model == "" {
 }
 ```
 
-main.goでは既存パターンに合わせて次の順で配線する。
+main.goでは次の順で配線する。
 
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
@@ -161,6 +161,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 
 `main.go`では`NewSummarizerRepository`が返した`error != nil`をすべてフォールバック対象として扱う。
 
+`llm.Config`へのマッピングに追加の一時Config構造体は作らない。
+
 `repository.SummarizerRepository`は既存インターフェースを使い、新規定義しない。
 
 タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
@@ -178,6 +180,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 - context timeout時に失敗する
 
 テスト時の外部API呼び出しは`httptest`または差し替え可能なクライアントインターフェースでモックし、実ネットワークに依存しない。
+
+モック方式は`httptest`を第一選択とし、SDKの都合で難しい場合のみクライアントインターフェース差し替えを使う。
 
 テストはテーブル駆動で記述する。
 
