@@ -17,6 +17,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 - 必須設定項目(APIキー、モデル名、リージョンなど)
 - 失敗時の扱い(初期化失敗時とnoopフォールバック失敗時の両方)
 
+プロバイダ名は`LLM_PROVIDER`に設定する小文字値を使う(例: `gemini`, `bedrock`)。
+
 上記3点が未確定なら実装を開始しない。特に必須設定項目は「変数名」「必須/任意」「default値」を表で先に決める。
 
 実装開始ゲート:
@@ -39,6 +41,23 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 - `Summarize(ctx context.Context, url, title string) (string, error)`
 - `IsEnabled() bool`
 3. internal/infrastructure/llm/summarizer.goのNewSummarizerRepository内のswitch文にcaseを追加する
+
+case追加の最小例:
+
+```go
+switch cfg.Provider {
+case "gemini":
+	return newGeminiSummarizer(ctx, cfg)
+case "bedrock":
+	return newBedrockSummarizer(ctx, cfg)
+case "myprovider":
+	return newMyproviderSummarizer(ctx, cfg)
+case "noop", "":
+	return newNoopSummarizer(), nil
+default:
+	return nil, fmt.Errorf("unknown LLM provider: %s", cfg.Provider)
+}
+```
 4. interfaces/config/config.goに必要な設定を追加する
 5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
 
@@ -56,6 +75,16 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 環境変数名は既存規約の`LLM_*`を使う。
 
+`config.go`の追加例:
+
+```go
+LLMProvider string `envconfig:"LLM_PROVIDER" default:""`
+LLMAPIKey   string `envconfig:"LLM_API_KEY"`
+LLMModel    string `envconfig:"LLM_MODEL"`
+LLMRegion   string `envconfig:"LLM_REGION" default:""`
+LLMTimeout  int    `envconfig:"LLM_TIMEOUT" default:"30"`
+```
+
 必須/任意の判定手順:
 
 1. プロバイダSDK/API仕様で必須入力を列挙する
@@ -63,6 +92,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 3. 任意入力のみdefault値を設定する
 4. `GetLLMConfig()`に全項目を追加する
 5. アダプタコンストラクタでrequired欠落を検証してエラー返却する
+
+エラーは`fmt.Errorf("...: %w", err)`でラップして返す。
 
 main.goでは既存パターンに合わせて次の順で配線する。
 
@@ -110,6 +141,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 
 `IsEnabled()`は`internal/application/rss_feed_service.go`から参照される。
 
+`repository.SummarizerRepository`は既存インターフェースを使い、新規定義しない。
+
 タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
 
 既存プロバイダの必須項目例:
@@ -125,6 +158,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 - context timeout時に失敗する
 
 テスト時の外部API呼び出しは`httptest`または差し替え可能なクライアントインターフェースでモックし、実ネットワークに依存しない。
+
+テストはテーブル駆動で記述する。
 
 ## 新しいキャッシュバックエンドの追加
 
