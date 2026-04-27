@@ -46,3 +46,41 @@
 - 発散: no
 - 打ち切り: no
 - 根拠: テスト方針は改善したが、critical #3 と #6 が未達。次反復では「プロバイダ具体名を入力必須にする」「既存GetLLMConfig拡張を明記する」のどちらか1テーマに絞る。
+
+## 反復2 1テーマ最小修正
+
+- 変更対象: add-infrastructure-adapter
+- 変更内容:
+  - `LLM_PROVIDER`から`cfg.Provider`へ到達する分岐経路を明記
+  - main.goの設定変換パターンとnoopフォールバック方針を明記
+  - timeout供給元を`LLM_TIMEOUT`に固定して明記
+
+### 再評価 (S2のみ)
+
+- S2: accuracy=5/6, critical_pass=false, 曖昧点数=4, 裁量補完数=5, 再試行回数=0, duration_ms=2500, tool_uses=1
+
+### 判定
+
+- 収束: no
+- 発散: no
+- 打ち切り: no
+- 根拠: critical #3のみ部分的。次反復は入力仕様の決定手順固定に限定する。
+
+## 反復3 1テーマ最小修正
+
+- 変更対象: add-infrastructure-adapter
+- 変更内容:
+  - 実装開始ゲート(3条件)を追加
+  - 必須/任意判定の5手順を追加
+  - 外部APIモック戦略を明記
+
+### 再評価 (S2のみ)
+
+- S2: accuracy=6/6, critical_pass=true, 曖昧点数=0, 裁量補完数=0, 再試行回数=0, duration_ms=2000, tool_uses=1
+
+### 判定
+
+- 収束: yes
+- 発散: no
+- 打ち切り: yes
+- 根拠: criticalを含む全要件が○、不明瞭点ゼロ。今回の目的である「問題が指摘されない状態」に到達。
