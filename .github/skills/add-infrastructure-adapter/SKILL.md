@@ -31,6 +31,8 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
+このプロジェクトではLLM関連設定を`interfaces/config/config.go`で一元管理する。`LLM_REGION`のような項目をconfigに置くことは本プロジェクトの規約上許容する。
+
 このSkillの対象は「単一の有効プロバイダ選択」のみ。複数プロバイダ同時初期化や実行時切り替えは対象外。
 
 1. internal/infrastructure/llm/に{プロバイダ名}_summarizer.goを作成する
@@ -95,6 +97,8 @@ LLMTimeout  int    `envconfig:"LLM_TIMEOUT" default:"30"`
 
 エラーは`fmt.Errorf("...: %w", err)`でラップして返す。
 
+required判定は`envconfig`の`required`タグではなく、プロバイダごとにコンストラクタ内で行う。
+
 main.goでは既存パターンに合わせて次の順で配線する。
 
 1. `llmCfg := cfg.GetLLMConfig()`
@@ -127,6 +131,8 @@ if err != nil {
 
 `context.WithTimeout`は`Summarize`メソッド内で適用する。
 
+`s.timeout <= 0`の場合は`30 * time.Second`を使う。
+
 最小例:
 
 ```go
@@ -140,6 +146,8 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 `IsEnabled()`は有効な要約器で`true`を返し、無効化用実装(noop)で`false`を返す。
 
 `IsEnabled()`は`internal/application/rss_feed_service.go`から参照される。
+
+`noop`フォールバック失敗時の`log.Fatal`は防御的ガードであり、通常経路では発生しない想定。
 
 `repository.SummarizerRepository`は既存インターフェースを使い、新規定義しない。
 
