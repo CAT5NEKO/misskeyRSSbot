@@ -112,7 +112,7 @@ main.goでは次の順で配線する。
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
-4. `noop`フォールバックも失敗した場合は`log.Fatal`で終了する
+4. `noop`フォールバックも失敗した場合は警告を出力し、要約機能なしで継続する
 
 `llmCfg.Timeout`は`GetLLMConfig()`で秒から`time.Duration`へ変換済みの値をそのまま渡す。
 
@@ -131,9 +131,11 @@ summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
 })
 if err != nil {
 	log.Printf("Warning: LLM initialization failed: %v", err)
+	log.Println("Attempting fallback to noop summarizer...")
 	summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 	if err != nil {
-		log.Fatal("Failed to create fallback noop summarizer:", err)
+		log.Printf("Warning: noop summarizer initialization failed: %v", err)
+		log.Println("Continuing without summarization feature")
 	}
 }
 ```
@@ -160,7 +162,7 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 
 `noop`フォールバック失敗時の扱い:
 
-LLMプロバイダ初期化は`main.go`で起動時に行われる。第一選択プロバイダが失敗した場合、`noop`サマライザーへフォールバックする。現行実装では、`noop`フォールバックも失敗した場合は`log.Fatal`で終了する。
+LLMプロバイダ初期化は`main.go`で起動時に行われる。第一選択プロバイダが失敗した場合、`noop`サマライザーへフォールバックする。`noop`フォールバックも失敗した場合は警告を出力し、要約機能なしで継続する。
 
 `llm.Config`へのマッピングに追加の一時Config構造体は作らない。
 
