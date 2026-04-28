@@ -90,7 +90,7 @@ func main() {
 		log.Println("Attempting fallback to noop summarizer...")
 		summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 		if err != nil {
-			log.Printf("Warning: noop summarizer initialization failed: %v", err)
+			log.Printf("Warning: noop summarizer initialization failed unexpectedly: %v", err)
 			log.Println("Continuing without summarization feature")
 		}
 	}
