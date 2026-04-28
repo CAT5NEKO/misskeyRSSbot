@@ -112,7 +112,7 @@ main.goでは次の順で配線する。
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
-4. `noop`フォールバックも失敗した場合は`log.Fatal`で終了する
+4. `noop`フォールバックも失敗した場合は`log.Printf`で警告を出力し、`noop`で継続する
 
 `llmCfg.Timeout`は`GetLLMConfig()`で秒から`time.Duration`へ変換済みの値をそのまま渡す。
 
@@ -130,9 +130,10 @@ summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
 	SystemInstruction: llmCfg.SystemInstruction,
 })
 if err != nil {
+	log.Printf("Warning: LLM initialization failed: %v", err)
 	summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 	if err != nil {
-		log.Fatal("Failed to create fallback noop summarizer:", err)
+		log.Printf("Warning: noop summarizer initialization failed: %v", err)
 	}
 }
 ```
@@ -157,9 +158,11 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 
 `IsEnabled()`は`internal/application/rss_feed_service.go`から参照される。
 
-`noop`フォールバック失敗時の`log.Fatal`は防御的ガードであり、通常経路では発生しない想定。
+`noop`フォールバック失敗時の扱い:
 
-`main.go`では`NewSummarizerRepository`が返した`error != nil`をすべてフォールバック対象として扱う。
+LLMプロバイダ初期化は`main.go`で起動時に行われる。第一選択プロバイダが失敗した場合、`noop`サマライザーへフォールバックする。`noop`も失敗した場合は`log.Printf`で警告を出力し、`nil`の`SummarizerRepository`で開始する(RSS取得・投稿ループは要約なしで継続)。
+
+プロセス終了は「設定ロード失敗」などの回復不可能なエラーのみ対象。LLMプロバイダの一時的な接続失敗は警告で済ます。
 
 `llm.Config`へのマッピングに追加の一時Config構造体は作らない。
 
@@ -201,7 +204,7 @@ io.Closerの実装が必要な場合はClose() errorメソッドも追加する�
 4. 必要な設定をinterfaces/config/config.goのConfig構造体にenvconfigタグ付きで追加する
 5. main.goで具象型を生成しサービスに注入する
 
-接続先やAPIキーなどの実装固有の設定は、infrastructure層内にConfig構造体を定義する。interfaces/config/config.goの設定からinfrastructure層のConfigへの変換はmain.goで行う。
+接続先やAPIキーなどの実装固有の設定は、infrastructure層内にConfig構造体を定義する。**LLMプロバイダに限ってはinterfaces/config/config.goで一元管理する**。interfaces/config/config.goの設定からinfrastructure層のConfigへの変換はmain.goで行う。
 
 ## 設定の追加に伴う対応
 
