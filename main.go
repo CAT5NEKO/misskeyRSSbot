@@ -47,20 +47,25 @@ func main() {
 	var cacheCloser io.Closer
 	var cacheCleaner cacheWithCleanup
 	firstRunLatestOnly := cfg.FirstRunLatestOnly
+
 	if cfg.IsPersistentCache() {
 		sqliteCache, cacheErr := storage.NewSQLiteCacheRepository(cfg.CacheDBPath)
-		if cacheErr != nil {
-			log.Fatal("Failed to initialize SQLite cache:", cacheErr)
+		if cacheErr == nil {
+			cacheRepo = sqliteCache
+			if closer, ok := sqliteCache.(io.Closer); ok {
+				cacheCloser = closer
+			}
+			if cleaner, ok := sqliteCache.(cacheWithCleanup); ok {
+				cacheCleaner = cleaner
+			}
+			log.Printf("Using persistent cache: %s", cfg.CacheDBPath)
+		} else {
+			log.Printf("Warning: Failed to initialize SQLite cache: %v", cacheErr)
+			log.Println("Falling back to in-memory cache")
 		}
-		cacheRepo = sqliteCache
-		if closer, ok := sqliteCache.(io.Closer); ok {
-			cacheCloser = closer
-		}
-		if cleaner, ok := sqliteCache.(cacheWithCleanup); ok {
-			cacheCleaner = cleaner
-		}
-		log.Printf("Using persistent cache: %s", cfg.CacheDBPath)
-	} else {
+	}
+
+	if cacheRepo == nil {
 		cacheRepo = storage.NewMemoryCacheRepository()
 		log.Println("Using in-memory cache (data will not persist across restarts)")
 		if !cfg.FirstRunLatestOnly {
@@ -82,10 +87,11 @@ func main() {
 	})
 	if err != nil {
 		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
-		log.Println("Continuing without summarization feature...")
+		log.Println("Attempting fallback to noop summarizer...")
 		summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 		if err != nil {
-			log.Fatal("Failed to create fallback noop summarizer:", err)
+			log.Printf("Warning: noop summarizer initialization failed unexpectedly: %v", err)
+			log.Println("Continuing without summarization feature")
 		}
 	}
 
