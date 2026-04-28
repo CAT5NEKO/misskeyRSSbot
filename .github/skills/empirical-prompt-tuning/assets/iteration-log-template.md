@@ -7,9 +7,9 @@
 - 変更テーマ: <1テーマのみ>
 
 ## 実行結果サマリー
-- S1: accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration=<ms>, tool_uses=<N>
-- S2: accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration=<ms>, tool_uses=<N>
-- S3(hold-out): accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration=<ms>, tool_uses=<N>
+- S1: accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration_ms=<ms>, tool_uses=<N>
+- S2: accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration_ms=<ms>, tool_uses=<N>
+- S3(hold-out): accuracy=<%>, critical_pass=<true|false>, 曖昧点数=<N>, 裁量補完数=<N>, 再試行回数=<N>, duration_ms=<ms>, tool_uses=<N>
 
 ## 新規不明瞭点
 - <今回初出の曖昧表現>

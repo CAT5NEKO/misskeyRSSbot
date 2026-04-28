@@ -31,7 +31,7 @@ LLMプロバイダを追加する場合、ファクトリパターンに従う�
 
 このプロジェクトでは分岐キーに`LLM_PROVIDER`を使う。値は`cfg.GetLLMConfig().Provider`を経由して`llm.Config.Provider`に渡され、`internal/infrastructure/llm/summarizer.go`の`switch cfg.Provider`で選択される。
 
-このプロジェクトではLLM関連設定を`interfaces/config/config.go`で一元管理する。`LLM_REGION`のような項目をconfigに置くことは本プロジェクトの規約上許容する。
+このプロジェクトではLLM関連設定を`internal/interfaces/config/config.go`で一元管理する。`LLM_REGION`のような項目をconfigに置くことは本プロジェクトの規約上許容する。
 
 このSkillの対象は「単一の有効プロバイダ選択」のみ。複数プロバイダ同時初期化や実行時切り替えは対象外。
 
@@ -60,8 +60,8 @@ default:
 	return nil, fmt.Errorf("unknown LLM provider: %s", cfg.Provider)
 }
 ```
-4. interfaces/config/config.goに必要な設定を追加する
-5. main.goでinterfaces/configの値をllm.Configへ変換して渡す
+4. internal/interfaces/config/config.goに必要な設定を追加する
+5. main.goでinternal/interfaces/configの値をllm.Configへ変換して渡す
 
 `llm.Config`の対象フィールド:
 
@@ -112,7 +112,7 @@ main.goでは次の順で配線する。
 1. `llmCfg := cfg.GetLLMConfig()`
 2. `llm.NewSummarizerRepository(ctx, llm.Config{...})`に`llmCfg`の各フィールドを明示的にマッピング
 3. 初期化失敗時は既存実装と同様に`noop`へフォールバック
-4. `noop`フォールバックも失敗した場合は`log.Printf`で警告を出力し、`noop`で継続する
+4. `noop`フォールバックも失敗した場合は`log.Fatal`で終了する
 
 `llmCfg.Timeout`は`GetLLMConfig()`で秒から`time.Duration`へ変換済みの値をそのまま渡す。
 
@@ -133,7 +133,7 @@ if err != nil {
 	log.Printf("Warning: LLM initialization failed: %v", err)
 	summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 	if err != nil {
-		log.Printf("Warning: noop summarizer initialization failed: %v", err)
+		log.Fatal("Failed to create fallback noop summarizer:", err)
 	}
 }
 ```
@@ -142,7 +142,7 @@ if err != nil {
 
 `context.WithTimeout`は`Summarize`メソッド内で適用する。
 
-`s.timeout <= 0`の場合は`30 * time.Second`を使う。
+タイムアウトのデフォルト値は各アダプタのコンストラクタで適用する。既存実装に合わせて`cfg.Timeout == 0`の場合は`30 * time.Second`を設定し、`Summarize`内で固定値を再定義しない。
 
 最小例:
 
@@ -160,15 +160,13 @@ func (s *myProviderSummarizer) Summarize(ctx context.Context, url, title string)
 
 `noop`フォールバック失敗時の扱い:
 
-LLMプロバイダ初期化は`main.go`で起動時に行われる。第一選択プロバイダが失敗した場合、`noop`サマライザーへフォールバックする。`noop`も失敗した場合は`log.Printf`で警告を出力し、`nil`の`SummarizerRepository`で開始する(RSS取得・投稿ループは要約なしで継続)。
-
-プロセス終了は「設定ロード失敗」などの回復不可能なエラーのみ対象。LLMプロバイダの一時的な接続失敗は警告で済ます。
+LLMプロバイダ初期化は`main.go`で起動時に行われる。第一選択プロバイダが失敗した場合、`noop`サマライザーへフォールバックする。現行実装では、`noop`フォールバックも失敗した場合は`log.Fatal`で終了する。
 
 `llm.Config`へのマッピングに追加の一時Config構造体は作らない。
 
 `repository.SummarizerRepository`は既存インターフェースを使い、新規定義しない。
 
-タイムアウト値は`config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。アダプタ側で固定値を新規定義しない。
+タイムアウト値は`internal/interfaces/config/config.go`の`LLM_TIMEOUT`(default 30秒)を`GetLLMConfig()`経由で渡す。新しいアダプタ実装では、`Summarize`内で固定値を新規定義しない。既存プロバイダ実装にある`cfg.Timeout == 0`時の30秒フォールバックは互換性維持の防御策として許容する。
 
 既存プロバイダの必須項目例:
 
@@ -201,14 +199,14 @@ io.Closerの実装が必要な場合はClose() errorメソッドも追加する�
 1. domain/repository/に新しいインターフェースを定義する
 2. internal/infrastructure/{サービス名}/にパッケージを作成する
 3. インターフェースを実装する(構造体はエクスポートしない、コンストラクタはNew{型名}でインターフェース型を返す)
-4. 必要な設定をinterfaces/config/config.goのConfig構造体にenvconfigタグ付きで追加する
+4. 必要な設定をinternal/interfaces/config/config.goのConfig構造体にenvconfigタグ付きで追加する
 5. main.goで具象型を生成しサービスに注入する
 
-接続先やAPIキーなどの実装固有の設定は、infrastructure層内にConfig構造体を定義する。**LLMプロバイダに限ってはinterfaces/config/config.goで一元管理する**。interfaces/config/config.goの設定からinfrastructure層のConfigへの変換はmain.goで行う。
+接続先やAPIキーなどの実装固有の設定は、infrastructure層内にConfig構造体を定義する。**LLMプロバイダに限ってはinternal/interfaces/config/config.goで一元管理する**。internal/interfaces/config/config.goの設定からinfrastructure層のConfigへの変換はmain.goで行う。
 
 ## 設定の追加に伴う対応
 
-1. interfaces/config/config.goにフィールドを追加する
-2. config_test.goにテストを追加する
+1. internal/interfaces/config/config.goにフィールドを追加する
+2. internal/interfaces/config/config_test.goにテストを追加する
 3. main.goで新しい設定を読み取り、infrastructure層に渡す
 4. READMEに環境変数の説明を追記する

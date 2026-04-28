@@ -8,8 +8,8 @@
 - 前提: RSS取得間隔に関連する新しい環境変数を1つ追加し、main.goまで配線する
 - 入力: 追加する設定名とデフォルト値
 - 期待成果物:
-  - interfaces/config/config.goの設定追加
-  - config_test.goの検証追加
+  - internal/interfaces/config/config.goの設定追加
+  - internal/interfaces/config/config_test.goの検証追加
   - main.goの配線更新
 
 ## S2 edge: 新規外部アダプタ追加

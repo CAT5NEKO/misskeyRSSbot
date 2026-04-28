@@ -13,9 +13,9 @@
 
 ### 実行結果サマリー
 
-- S1: accuracy=4/6, critical_pass=false, 曖昧点数=4, 裁量補完数=4, 再試行回数=1, duration_ms=45000, tool_uses=3
-- S2: accuracy=3/6, critical_pass=false, 曖昧点数=4, 裁量補完数=4, 再試行回数=0, duration_ms=8000, tool_uses=4
-- S3(hold-out): accuracy=5/6, critical_pass=false, 曖昧点数=4, 裁量補完数=0, 再試行回数=0, duration_ms=3500, tool_uses=1
+- S1: accuracy=67%, critical_pass=false, 曖昧点数=4, 裁量補完数=4, 再試行回数=1, duration_ms=45000, tool_uses=3
+- S2: accuracy=50%, critical_pass=false, 曖昧点数=4, 裁量補完数=4, 再試行回数=0, duration_ms=8000, tool_uses=4
+- S3(hold-out): accuracy=83%, critical_pass=false, 曖昧点数=4, 裁量補完数=0, 再試行回数=0, duration_ms=3500, tool_uses=1
 
 ### 新規不明瞭点
 
@@ -38,7 +38,7 @@
 
 ### 再評価 (S2のみ)
 
-- S2: accuracy=3/6, critical_pass=false, 曖昧点数=5, 裁量補完数=4, 再試行回数=0, duration_ms=45000, tool_uses=6
+- S2: accuracy=50%, critical_pass=false, 曖昧点数=5, 裁量補完数=4, 再試行回数=0, duration_ms=45000, tool_uses=6
 
 ### 判定
 
@@ -57,7 +57,7 @@
 
 ### 再評価 (S2のみ)
 
-- S2: accuracy=5/6, critical_pass=false, 曖昧点数=4, 裁量補完数=5, 再試行回数=0, duration_ms=2500, tool_uses=1
+- S2: accuracy=83%, critical_pass=false, 曖昧点数=4, 裁量補完数=5, 再試行回数=0, duration_ms=2500, tool_uses=1
 
 ### 判定
 
@@ -76,7 +76,7 @@
 
 ### 再評価 (S2のみ)
 
-- S2: accuracy=6/6, critical_pass=true, 曖昧点数=0, 裁量補完数=0, 再試行回数=0, duration_ms=2000, tool_uses=1
+- S2: accuracy=100%, critical_pass=true, 曖昧点数=0, 裁量補完数=0, 再試行回数=0, duration_ms=2000, tool_uses=1
 
 ### 判定
 
