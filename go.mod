@@ -1,8 +1,8 @@
 module misskeyRSSbot
 
-go 1.24.0
+go 1.26.0
 
-toolchain go1.24.12
+toolchain go1.26.5
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
