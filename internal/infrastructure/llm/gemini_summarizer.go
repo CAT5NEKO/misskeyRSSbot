@@ -68,9 +68,7 @@ func (s *geminiSummarizer) Summarize(ctx context.Context, url, title string) (st
 	systemInstruction := genai.NewContentFromText(s.systemPrompt, genai.RoleUser)
 	userContent := genai.NewContentFromText(userPrompt, genai.RoleUser)
 
-	temperature := float32(0.3)
 	config := &genai.GenerateContentConfig{
-		Temperature:       &temperature,
 		SystemInstruction: systemInstruction,
 		Tools: []*genai.Tool{
 			{
